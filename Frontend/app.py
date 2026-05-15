@@ -58,7 +58,7 @@ if image_file is not None:
     if st.button("Detect Number Plate"):
 
         # Backend URL
-        FASTAPI_URL = "http://127.0.0.1:8000/detect"
+        FASTAPI_URL = "https://subhojit156-number-plate-detection-backend.hf.space/detect"
 
         files = {
             "file": image_file.getvalue()
