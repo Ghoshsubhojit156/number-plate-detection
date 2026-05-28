@@ -12,6 +12,46 @@ st.set_page_config(
 st.title("🚘 Number Plate Detection System for Cars, Buses and Trucks")
 
 # ======================================
+# IMAGE COMPRESSION FUNCTION
+# ======================================
+
+def compress_image(image_bytes, max_size_kb=200):
+
+    nparr = np.frombuffer(
+        image_bytes,
+        np.uint8
+    )
+
+    img = cv2.imdecode(
+        nparr,
+        cv2.IMREAD_COLOR
+    )
+
+    quality = 95
+
+    while quality >= 10:
+
+        success, encoded_img = cv2.imencode(
+            ".jpg",
+            img,
+            [cv2.IMWRITE_JPEG_QUALITY, quality]
+        )
+
+        if not success:
+            return image_bytes
+
+        compressed_bytes = encoded_img.tobytes()
+
+        size_kb = len(compressed_bytes) / 1024
+
+        if size_kb <= max_size_kb:
+            return compressed_bytes
+
+        quality -= 5
+
+    return compressed_bytes
+
+# ======================================
 # OPTION SELECTION
 # ======================================
 
@@ -30,7 +70,7 @@ if option == "Upload Image":
 
     image_file = st.file_uploader(
         "Upload Vehicle Image",
-        type=["jpg", "jpeg", "png","jfif","webp"]
+        type=["jpg", "jpeg", "png", "jfif", "webp"]
     )
 
 # ======================================
@@ -60,8 +100,20 @@ if image_file is not None:
         # Backend URL
         FASTAPI_URL = "https://subhojit156-number-plate-detection-backend.hf.space/detect"
 
+        # Compress image to <=200KB
+        original_image = image_file.getvalue()
+
+        compressed_image = compress_image(
+            original_image,
+            max_size_kb=200
+        )
+
+        st.write(
+            f"Compressed Image Size: {len(compressed_image)/1024:.2f} KB"
+        )
+
         files = {
-            "file": image_file.getvalue()
+            "file": compressed_image
         }
 
         with st.spinner("Detecting Number Plate..."):
@@ -91,10 +143,14 @@ if image_file is not None:
 
                 for det in data["detections"]:
 
-                    st.write(f"Plate Number: {det['text']}")
+                    st.write(
+                        f"Plate Number: {det['text']}"
+                    )
 
             else:
-                st.warning("No Number Plate Detected")
+                st.warning(
+                    "No Number Plate Detected"
+                )
 
             # ======================================
             # SHOW OUTPUT IMAGE
@@ -126,4 +182,6 @@ if image_file is not None:
             )
 
         else:
-            st.error("Backend API Error")
+            st.error(
+                "Backend API Error"
+            )
